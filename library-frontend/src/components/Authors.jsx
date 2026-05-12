@@ -6,6 +6,7 @@ const Authors = (props) => {
 
   const [name, setName] = useState("")
   const [born, setBorn] = useState("");
+  const [choice, setChoice] = useState("")
   const [editAuthor] = useMutation(UPDATE_AUTHOR,{
     refetchQueries : [{query : ALL_AUTHORS}]
   })
@@ -18,7 +19,8 @@ const Authors = (props) => {
   const handleSubmit = (e)=> {
     e.preventDefault()
     console.log(name,born)
-    editAuthor({variables : {name, setBornTo : parseInt(born) }})
+    console.log("choice is", choice)
+    editAuthor({variables : {name : choice, setBornTo : parseInt(born) }})
     setName('')
     setBorn('')
   }
@@ -42,14 +44,24 @@ const Authors = (props) => {
         </tbody>
       </table>
       <div>
+        <h2>Set birthyear</h2>
         <form onSubmit={handleSubmit}>
           <div>
             <label>
             name 
-            <input 
-              value ={name}
-              onChange={({target})=> setName(target.value)}
-            />
+         {/* <select value={choice} onChange={(e) => setChoice(e.target.value)}>
+            <option value="apple">Apple</option>
+            <option value="banana">Banana</option>
+            <option value="orange">Orange</option>
+          </select>*/}
+          <select value={choice} onChange={(e) => setChoice(e.target.value)}>
+             <option value="" disabled>Select an author</option>
+            {
+              authors.map(author=> (
+                <option key={author.id} value={author.name}>{author.name}</option>
+              ))
+            }
+          </select>
           </label>
           </div>
            <div>
