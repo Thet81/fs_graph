@@ -86,8 +86,21 @@ const resolvers = {
   Query: {
     bookCount: async () => Book.collection.countDocuments(),
     authorCount : async ()=> Author.collection.countDocuments(),
+    // allBooks resolver accept both author and genre as optional parameter
     allBooks : async (root, args)=> {
-     	return Book.find({})
+      console.log("args inside allBooks are ", args);
+      const author = await Author.findOne({name : args.author})
+      console.log("the book's author is ", author)
+      if(args.author){  
+        console.log('reach here')
+        // return Book.findOne({author : author._id})
+        return Book.find({author : author._id}).populate('author')
+      }
+
+      if(args.genre){
+        return Book.find({genres : args.genre})
+      }
+     	return Book.find({}).populate('author')
     },
     allAuthors : async ()=>{
     	return Author.find({})
@@ -110,7 +123,9 @@ const resolvers = {
       	published,
       	genres
       })
-      const authorOfTheBook = Author.findOne({name : args.author})
+      const authorOfTheBook = await Author.findOne({name : author})
+      console.log(authorOfTheBook)
+      console.log("the id of author of the book is ",authorOfTheBook._id)
       book.author = authorOfTheBook._id;
       return book.save()
     },
