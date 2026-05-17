@@ -1,6 +1,6 @@
 // resolvers.js
 
-const GraphQLError = require("graphql")
+const {GraphQLError} = require("graphql")
 const Author = require('./models/author')
 const Book = require('./models/book')
 
@@ -89,18 +89,19 @@ const resolvers = {
     // allBooks resolver accept both author and genre as optional parameter
     allBooks : async (root, args)=> {
       console.log("args inside allBooks are ", args);
-      const author = await Author.findOne({name : args.author})
-      console.log("the book's author is ", author)
+      const query = {}
       if(args.author){  
-        console.log('reach here')
-        // return Book.findOne({author : author._id})
-        return Book.find({author : author._id}).populate('author')
+        const author = await Author.findOne({name : args.author})
+        if(!author){
+          return []
+        }
+        query.author = author._id
       }
 
-      if(args.genre){
-        return Book.find({genres : args.genre})
+      if(args.genres){
+       query.genres = args.genres
       }
-     	return Book.find({}).populate('author')
+     	return Book.find(query).populate('author')
     },
     allAuthors : async ()=>{
     	return Author.find({})
@@ -127,22 +128,47 @@ const resolvers = {
       console.log(authorOfTheBook)
       console.log("the id of author of the book is ",authorOfTheBook._id)
       book.author = authorOfTheBook._id;
-      return book.save()
-    },
-    editAuthor : (root, args)=> {
-      const {name, setBornTo} = args;
-      const authorToUpdate = authors.find(author => author.name === name)
-
-      if (!authorToUpdate){
-        return null
+      try {
+        await book.save()
+      }catch (error){
+        throw new GraphQLError(`Saving the book failed ${error}`, {
+          extensions : {
+            code : 'BAD_USER_INPUT',
+            invalidArgs : args.title,
+            error
+          }
+        })
       }
-      const updatedAuthor = {name, born : setBornTo}
-      authors = authors.map(author => author.name === name ? updatedAuthor : author)
-      return updatedAuthor
+      return book
+    },
+    editAuthor : async (root, args)=> {
+      const author = await Author.findOne({name : args.name})
+      if(!args.setBornTo){
+          throw new GraphQLError(`Book title must be unique : ${args.title}`,{
+          extensions : {
+            code : 'BAD_USER_INPUT',
+            invalidArgs : args.title
+          }
+        })
+      }
+      author.born = args.setBornTo
+      return author.save();
     },
     createAuthor : async (root, args)=> {
     	const author = new Author({...args})
-    	return author.save()
+    	
+      try {
+        await author.save()
+      }catch(error){
+        throw new GraphQLError(`Saving the author failed : ${error}`,{
+          extensions : {
+            code : 'BAD_USER_INPUT',
+            invalidArgs : args.name,
+            error
+          }
+        })
+      }
+      return author
     }
   }
 }

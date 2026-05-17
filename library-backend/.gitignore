@@ -1,4 +1,7 @@
 node_modules/
 
 .env
-.index.bk.js
+./index.bk.js
+
+./fixes.md
+
