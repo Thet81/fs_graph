@@ -3,6 +3,8 @@
 const {GraphQLError} = require("graphql")
 const Author = require('./models/author')
 const Book = require('./models/book')
+const User = require('./models/user')
+const jwt = require('jsonwebtoken')
 
 let authors = [
   {
@@ -105,10 +107,27 @@ const resolvers = {
     },
     allAuthors : async ()=>{
     	return Author.find({})
+    },
+    allUsers : async ()=> {
+      const user =  await User.find({})
+      console.log(user)
+      return user
+    },
+    me :  (root,args,context)=>{
+      return context.currentUser
     } 
   },
   Mutation : {
-    addBook : async (root, args)=> {
+    addBook : async (root, args, context)=> {
+    const currentUser = context.currentUser;
+
+    if(!currentUser){
+      throw new GraphQLError('not authenticated',{
+        extensions : {
+          code : 'UNAUTHENTICATED'
+        }
+      })
+    }
     const {title,author,published,genres} = args
       const bookExists = await Book.exists({title})
       if(bookExists){
@@ -141,8 +160,17 @@ const resolvers = {
       }
       return book
     },
-    editAuthor : async (root, args)=> {
+    editAuthor : async (root, args, context)=> {
       const author = await Author.findOne({name : args.name})
+      const currentUser = context.currentUser;
+
+      if(!currentUser){
+        throw new GraphQLError("not authenticated",{
+          extensions : {
+            code : "UNAUTHENTICATED"
+          }
+        })
+      }
       if(!args.setBornTo){
           throw new GraphQLError(`Book title must be unique : ${args.title}`,{
           extensions : {
@@ -169,6 +197,40 @@ const resolvers = {
         })
       }
       return author
+    },
+    createUser : async (root, args)=> {
+      const user = new User({...args})
+      try {
+        await user.save()
+      }catch(error){
+        throw new GraphQLError(`Saving the user failed ${error}`, {
+          extensions : {
+            code : 'BAD_USER_INPUT',
+            invalidArgs : args.username,
+            error
+          }
+        })
+      }
+      return user
+    },
+    login : async (root,args)=> {
+      const user = await User.findOne({username : args.username})
+      console.log('user is ',user)
+      //for now I am assuming that all user have the same password called secret
+      if(!user || args.password !== 'secret'){
+        throw new GraphQLError(`Wrong Credentials`, {
+          extensions : {
+            code : 'BAD_USER_INPUT'
+          }
+        })
+      }
+
+      const userForToken = {
+        username : user.username,
+        id : user._id
+      }
+
+      return {value : jwt.sign(userForToken,process.env.JWT_SECRET)}
     }
   }
 }

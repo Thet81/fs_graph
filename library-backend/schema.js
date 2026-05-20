@@ -1,5 +1,15 @@
 // schema.js
 const typeDefs = `
+  type User {
+    username : String
+    favoriteGenre : String
+    id : ID!
+  }
+
+  type Token {
+    value : String!
+  }
+
   type Book {
     title : String
     author : Author
@@ -18,6 +28,8 @@ const typeDefs = `
     authorCount : Int
     allBooks (author : String, genres : String) : [Book]
     allAuthors : [Author]
+    me : User
+    allUsers : [User]
   }
 
   type Mutation {
@@ -32,6 +44,14 @@ const typeDefs = `
 		name : String
 		born : Int
     ) : Author
+    createUser(
+      username : String!
+      favoriteGenre : String!
+    ): User
+    login(
+      username : String!
+      password : String!
+    ) : Token
   }
 `
 
